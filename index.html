@@ -1,1 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="manifest" href="/site.webmanifest">
+
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PassForge — Password Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==============================
+       DESIGN TOKENS
+       ============================== */
+    :root {
+      --bg:              #0d0d0f;
+      --surface:         #16161a;
+      --border:          #2a2a32;
+      --text-primary:    #f0ede8;
+      --text-secondary:  #8a8690;
+      --text-hint:       #454050;
+      --accent:          #f0a500;
+      --accent-dim:      rgba(240, 165, 0, 0.10);
+      --accent-glow:     rgba(240, 165, 0, 0.22);
+      --danger:          #e05c5c;
+      --success:         #5ce084;
+
+      --str-weak:        #e05c5c;
+      --str-fair:        #e09c5c;
+      --str-good:        #d4dc50;
+      --str-strong:      #5ce084;
+
+      --radius-sm:  4px;
+      --radius-md:  8px;
+      --radius-lg:  16px;
+
+      --font-mono:    'JetBrains Mono', monospace;
+      --font-display: 'Syne', sans-serif;
+    }
+
+    /* ==============================
+       RESET
+       ============================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ==============================
+       BASE
+       ============================== */
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Grid texture */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ==============================
+       LAYOUT
+       ============================== */
+    .container {
+      width: 100%;
+      max-width: 460px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ==============================
+       HEADER
+       ============================== */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .logo-mark {
+      font-size: 1.8rem;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 0.6rem;
+      animation: spin 10s linear infinite;
+      line-height: 1;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 6vw, 2.8rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    /* ==============================
+       CARD
+       ============================== */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      box-shadow: 0 0 80px rgba(0, 0, 0, 0.6);
+    }
+
+    /* ==============================
+       OUTPUT
+       ============================== */
+    .output-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .output-label {
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      color: var(--text-hint);
+      text-transform: uppercase;
+    }
+
+    .output-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .password-input {
+      flex: 1;
+      min-width: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 0.8rem 1rem;
+      letter-spacing: 0.06em;
+      transition: border-color 0.2s;
+      cursor: default;
+    }
+
+    .password-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .password-input::placeholder {
+      color: var(--text-hint);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+
+    /* Copy button */
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--accent-dim);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.8rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .copy-btn.copied {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(92, 224, 132, 0.08);
+    }
+
+    .copy-icon {
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    /* Strength meter */
+    .strength-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .strength-bar {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .strength-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      transition: width 0.45s ease, background-color 0.45s ease;
+    }
+
+    .strength-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      min-width: 46px;
+      text-align: right;
+      transition: color 0.45s ease;
+    }
+
+    /* ==============================
+       CONTROLS
+       ============================== */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .length-value {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0;
+    }
+
+    /* Range slider */
+    .slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      border-radius: 99px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 0 4px var(--accent-glow);
+      transition: box-shadow 0.2s;
+    }
+
+    .slider::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0 7px var(--accent-glow);
+    }
+
+    .slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+
+    /* Toggle switches */
+    .toggles {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      flex-shrink: 0;
+      width: 38px;
+      height: 21px;
+      border-radius: 99px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      position: relative;
+      transition: all 0.25s;
+    }
+
+    .toggle-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--text-hint);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .toggle input:checked + .toggle-track .toggle-thumb {
+      transform: translateX(17px);
+      background: var(--accent);
+    }
+
+    .toggle input:focus-visible + .toggle-track {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .toggle-label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+
+    .toggle:hover .toggle-label {
+      color: var(--text-primary);
+    }
+
+    .toggle-hint {
+      font-size: 0.62rem;
+      color: var(--text-hint);
+      margin-left: 0.35rem;
+    }
+
+    /* Error message */
+    .error-msg {
+      font-size: 0.68rem;
+      color: var(--danger);
+      letter-spacing: 0.04em;
+      min-height: 1em;
+    }
+
+    /* ==============================
+       GENERATE BUTTON
+       ============================== */
+    .generate-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-md);
+      color: #0d0d0f;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+
+    .generate-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0);
+      transition: background 0.2s;
+    }
+
+    .generate-btn:hover::after {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .generate-btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-arrow {
+      font-size: 1.15rem;
+      transition: transform 0.2s;
+      display: inline-block;
+    }
+
+    .generate-btn:hover .btn-arrow {
+      transform: translateX(5px);
+    }
+
+    /* ==============================
+       RESPONSIVE
+       ============================== */
+    @media (max-width: 480px) {
+      .card {
+        padding: 1.5rem;
+        gap: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <main class="container">
+
+    <header class="header">
+      <div class="logo-mark" aria-hidden="true">⬡</div>
+      <h1 class="title">PassForge</h1>
+      <p class="subtitle">Cryptographically secure passwords</p>
+    </header>
+
+    <div class="card">
+
+      <!-- Password Output -->
+      <div class="output-wrap">
+        <div class="output-label" aria-hidden="true">Generated Password</div>
+        <div class="output-row">
+          <input
+            type="text"
+            id="password"
+            class="password-input"
+            readonly
+            aria-label="Generated password"
+            placeholder="Click generate…"
+          >
+          <button id="copy" class="copy-btn" aria-label="Copy password to clipboard">
+            <span class="copy-icon" aria-hidden="true">⎘</span>
+            <span class="copy-text">Copy</span>
+          </button>
+        </div>
+        <div class="strength-wrap" aria-label="Password strength">
+          <div class="strength-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="strength-bar">
+            <div class="strength-fill" id="strength-fill"></div>
+          </div>
+          <span class="strength-label" id="strength-label">—</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+
+        <!-- Length -->
+        <div class="control-group">
+          <label class="control-label" for="length">
+            <span>Length</span>
+            <span class="length-value" id="length-value">12</span>
+          </label>
+          <input type="range" id="length" class="slider" min="4" max="64" value="12" aria-label="Password length">
+        </div>
+
+        <!-- Toggles -->
+        <div class="toggles" role="group" aria-label="Character type options">
+
+          <label class="toggle">
+            <input type="checkbox" id="uppercase">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label">Uppercase <span class="toggle-hint">A–Z</span></span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" id="numbers">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label">Numbers <span class="toggle-hint">0–9</span></span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" id="symbols">
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label">Symbols <span class="toggle-hint">!@#$…</span></span>
+          </label>
+
+        </div>
+
+        <!-- Inline error -->
+        <p class="error-msg" id="error-msg" role="alert" aria-live="polite"></p>
+
+      </div>
+
+      <!-- Generate Button -->
+      <button id="generate" class="generate-btn">
+        <span class="btn-text">Generate Password</span>
+        <span class="btn-arrow" aria-hidden="true">→</span>
+      </button>
+
+    </div>
+  </main>
+
+  <script>
+    // ============================================
+    //  CONSTANTS
+    // ============================================
+    const CHAR_SETS = {
+      lowercase: 'abcdefghijklmnopqrstuvwxyz',
+      uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      numbers:   '0123456789',
+      symbols:   '!@#$%^&*()_+-=[]{}|;:,.<>?',
+    };
+
+    const STRENGTH_LEVELS = [
+      { label: 'Weak',   color: 'var(--str-weak)',   max: 0.30 },
+      { label: 'Fair',   color: 'var(--str-fair)',   max: 0.55 },
+      { label: 'Good',   color: 'var(--str-good)',   max: 0.78 },
+      { label: 'Strong', color: 'var(--str-strong)', max: 1.00 },
+    ];
+
+    // ============================================
+    //  DOM REFS
+    // ============================================
+    const passwordInput  = document.getElementById('password');
+    const lengthSlider   = document.getElementById('length');
+    const lengthDisplay  = document.getElementById('length-value');
+    const uppercaseCB    = document.getElementById('uppercase');
+    const numbersCB      = document.getElementById('numbers');
+    const symbolsCB      = document.getElementById('symbols');
+    const generateBtn    = document.getElementById('generate');
+    const copyBtn        = document.getElementById('copy');
+    const copyText       = copyBtn.querySelector('.copy-text');
+    const strengthFill   = document.getElementById('strength-fill');
+    const strengthLabel  = document.getElementById('strength-label');
+    const strengthBar    = document.getElementById('strength-bar');
+    const errorMsg       = document.getElementById('error-msg');
+
+    // ============================================
+    //  CRYPTO RANDOM
+    //  Returns a cryptographically secure int in [0, max)
+    //  Uses rejection sampling to avoid modulo bias
+    // ============================================
+    function cryptoRandom(max) {
+      const limit = Math.floor(0x100000000 / max) * max;
+      let value;
+      const buf = new Uint32Array(1);
+      do {
+        crypto.getRandomValues(buf);
+        value = buf[0];
+      } while (value >= limit);
+      return value % max;
+    }
+
+    // ============================================
+    //  FISHER-YATES SHUFFLE
+    //  Shuffles an array in-place using cryptoRandom
+    // ============================================
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = cryptoRandom(i + 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ============================================
+    //  STRENGTH CALCULATOR
+    //  Estimates entropy: log2(poolSize ^ length)
+    //  Normalises to a 0–1 score for display
+    // ============================================
+    function calcStrength(length, poolSize) {
+      const entropy = length * Math.log2(poolSize);
+      return Math.min(entropy / 80, 1);
+    }
+
+    function applyStrength(score) {
+      const level = STRENGTH_LEVELS.find(l => score <= l.max) ?? STRENGTH_LEVELS[3];
+      strengthFill.style.width           = `${score * 100}%`;
+      strengthFill.style.backgroundColor = level.color;
+      strengthLabel.textContent          = level.label;
+      strengthLabel.style.color          = level.color;
+      strengthBar.setAttribute('aria-valuenow', Math.round(score * 100));
+    }
+
+    // ============================================
+    //  GENERATE PASSWORD
+    // ============================================
+    function generatePassword() {
+      clearError();
+
+      const length = parseInt(lengthSlider.value, 10);
+
+      const activeSets = [CHAR_SETS.lowercase];
+      if (uppercaseCB.checked) activeSets.push(CHAR_SETS.uppercase);
+      if (numbersCB.checked)   activeSets.push(CHAR_SETS.numbers);
+      if (symbolsCB.checked)   activeSets.push(CHAR_SETS.symbols);
+
+      if (length < activeSets.length) {
+        showError(`Increase length to at least ${activeSets.length} for the active sets.`);
+        return;
+      }
+
+      const fullPool = activeSets.join('');
+
+      const guaranteed = activeSets.map(set => set[cryptoRandom(set.length)]);
+
+      const filler = Array.from(
+        { length: length - guaranteed.length },
+        () => fullPool[cryptoRandom(fullPool.length)]
+      );
+
+      const password = shuffle([...guaranteed, ...filler]).join('');
+
+      passwordInput.value = password;
+
+      const score = calcStrength(length, fullPool.length);
+      applyStrength(score);
+    }
+
+    // ============================================
+    //  COPY TO CLIPBOARD
+    // ============================================
+    function copyPassword() {
+      const pwd = passwordInput.value;
+      if (!pwd) return;
+
+      navigator.clipboard.writeText(pwd)
+        .then(() => {
+          copyText.textContent = 'Copied!';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyText.textContent = 'Copy';
+            copyBtn.classList.remove('copied');
+          }, 2000);
+        })
+        .catch(() => {
+          showError('Clipboard access denied. Select and copy manually.');
+        });
+    }
+
+    // ============================================
+    //  ERROR HELPERS
+    // ============================================
+    function showError(msg) {
+      errorMsg.textContent = msg;
+    }
+
+    function clearError() {
+      errorMsg.textContent = '';
+    }
+
+    // ============================================
+    //  EVENT LISTENERS
+    // ============================================
+    generateBtn.addEventListener('click', generatePassword);
+    copyBtn.addEventListener('click', copyPassword);
+
+    lengthSlider.addEventListener('input', () => {
+      lengthDisplay.textContent = lengthSlider.value;
+    });
+
+    lengthSlider.addEventListener('change', () => {
+      if (passwordInput.value) generatePassword();
+    });
+
+    [uppercaseCB, numbersCB, symbolsCB].forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (passwordInput.value) generatePassword();
+      });
+    });
+
+    // ============================================
+    //  INIT
+    // ============================================
+    generatePassword();
+  </script>
+</body>
+</html>
 
